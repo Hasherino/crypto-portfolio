@@ -4,82 +4,55 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AssetController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
+    public function index(Request $request) {
+        return Asset::getUserAssets($request->user_id);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+    public function show(Request $request, $id) {
+        return Asset::getAsset($request->user_id, $id);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $asset = Asset::createAsset($request);
+
+        if ($asset instanceof Response) {
+            return $asset;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Asset created successfully',
+            'data' => $asset
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Asset  $asset
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Asset $asset)
-    {
-        //
+    public function update(Request $request, $id) {
+        $asset = Asset::updateAsset($request, $id);
+
+        if ($asset instanceof Response) {
+            return $asset;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Asset updated successfully',
+            'data' => $asset
+        ], 201);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Asset  $asset
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Asset $asset)
-    {
-        //
-    }
+    public function destroy(Request $request, $id) {
+        if (!!$error = Asset::deleteAsset($request->user_id, $id)) {
+            return $error;
+        }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Asset  $asset
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Asset $asset)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Asset  $asset
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Asset $asset)
-    {
-        //
+        return response()->json([
+            'success' => true,
+            'message' => 'Gear deleted successfully'
+        ]);
     }
 }

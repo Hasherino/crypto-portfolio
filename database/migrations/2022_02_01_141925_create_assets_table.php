@@ -18,7 +18,7 @@ class CreateAssetsTable extends Migration
             $table->unsignedInteger('user_id');
             $table->string('label');
             $table->unsignedDouble('value');
-            $table->enum('currency', ['BTC', 'ETH', 'I0TA']);
+            $table->enum('currency', ['BTC', 'ETH', 'IOTA']);
             $table->timestamps();
         });
     }
