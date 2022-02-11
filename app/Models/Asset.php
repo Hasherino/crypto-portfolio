@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class Asset extends Model
 {
@@ -22,26 +23,26 @@ class Asset extends Model
     ];
 
     public static function getUserAssets($user_id) {
-        $assets = User::find($user_id)->assets()->get();
+        $assets = User::findOrFail($user_id)->assets()->get();
 
         if(!!$assets) {
+            $totalValue = 0;
+
             foreach ($assets as $asset) {
-                $asset['price_in_usd'] = $asset->value * self::getExchangeRate($asset);
+                $value = $asset->value * self::getExchangeRate($asset);
+                $asset['value_in_usd'] = $value;
+                $totalValue += $value;
             }
         }
+        
+        $data['assets'] = $assets;
+        $data['total_value_in_usd'] = $totalValue;
 
-        return $assets;
+        return $data;
     }
 
     public static function getAsset($user_id, $id) {
-        $asset = Asset::find($id);
-
-        if(!$asset) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Asset not found'
-            ], 404);
-        }
+        $asset = Asset::findOrFail($id);
 
         if($asset->user_id != $user_id) {
             return response()->json([
@@ -50,7 +51,7 @@ class Asset extends Model
             ], 400);
         }
 
-        $asset['price_in_usd'] = $asset->value * self::getExchangeRate($asset);
+        $asset['value_in_usd'] = $asset->value * self::getExchangeRate($asset);
 
         return $asset;
     }
@@ -59,8 +60,8 @@ class Asset extends Model
         $validator = Validator::make($request->all(), [
             'label' => 'required|string|max:50|unique:assets,label,user_id',
             'value' => 'required|numeric|gt:0',
-            'currency' => 'required|in:BTC,ETH,IOTA',
-            'user_id' => 'required|exists:users,id'
+            'user_id' => 'required|exists:users,id',
+            'currency' => ['required', Rule::in(\Config::get('currencies'))]
         ]);
 
         if($validator->fails()){
@@ -74,21 +75,14 @@ class Asset extends Model
         $validator = Validator::make($request->all(), [
             'label' => 'string|max:50|unique:assets,label,user_id',
             'value' => 'numeric|gt:0',
-            'currency' => 'in:BTC,ETH,IOTA'
+            'currency' => [Rule::in(\Config::get('currencies'))]
         ]);
 
         if($validator->fails()){
             return response()->json($validator->errors(), 400);
         }
 
-        $asset = Asset::find($id);
-
-        if(!$asset) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Asset not found'
-            ], 404);
-        }
+        $asset = Asset::findOrFail($id);
 
         if($asset->user_id != $request->user_id) {
             return response()->json([
@@ -103,14 +97,7 @@ class Asset extends Model
     }
 
     public static function deleteAsset($user_id, $id) {
-        $asset = Asset::find($id);
-
-        if(!$asset) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Asset not found'
-            ], 404);
-        }
+        $asset = Asset::findOrFail($id);
 
         if($asset->user_id != $user_id) {
             return response()->json([
